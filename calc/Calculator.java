@@ -17,4 +17,9 @@ public class Calculator {
         }
         return true;
     }
+
+    // Returns whether s has a valid percentage value
+    public boolean isValidPercentage(String s) {
+        return true;
+    }
 }

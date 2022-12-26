@@ -10,11 +10,18 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 public class Gui implements ActionListener {
     private final Calculator c = new Calculator();
     private final JFrame frame = new JFrame();
+
+    // Checks
+    //boolean saveAsFieldWasEdited = false;
 
     // GUI parts
     private final JPanel calculatePanel = new JPanel();
@@ -35,8 +42,10 @@ public class Gui implements ActionListener {
     JLabel arrowLabel2 = new JLabel("\u2192");
     JLabel profitLabel = new JLabel("Profit");
 
-    JComboBox<String> mat1Box = new JComboBox<>(materials);
-    JComboBox<String> mat2Box = new JComboBox<>(materials);
+    JComboBox<String> mat1TypeBox = new JComboBox<>(materials);
+    JComboBox<String> mat2TypeBox = new JComboBox<>(materials);
+    JComboBox<String> mat1TierBox = new JComboBox<>(tiers);
+    JComboBox<String> mat2TierBox = new JComboBox<>(tiers);
     JComboBox<String> loadFileBox = new JComboBox<>();
 
     JTextField artifactPriceField = new JTextField();
@@ -123,11 +132,11 @@ public class Gui implements ActionListener {
         sellPriceLabel.setFont(defaultFont);
         calculatePanel.add(sellPriceLabel);
 
-        xLabel1.setBounds(390,8,11,30);
+        xLabel1.setBounds(361,8,11,30);
         xLabel1.setFont(defaultFont);
         calculatePanel.add(xLabel1);
 
-        xLabel2.setBounds(390,58,11,30);
+        xLabel2.setBounds(361,58,11,30);
         xLabel2.setFont(defaultFont);
         calculatePanel.add(xLabel2);
 
@@ -151,26 +160,36 @@ public class Gui implements ActionListener {
         profitLabel.setFont(defaultFont);
         calculatePanel.add(profitLabel);
 
-        mat1Box.setSelectedIndex(-1);
-        mat1Box.setBounds(170,10,112,30);
-        mat1Box.setFont(defaultFont);
-        calculatePanel.add(mat1Box);
-        mat1Box.addActionListener(this);
+        mat1TypeBox.setSelectedIndex(-1);
+        mat1TypeBox.setBounds(170,10,112,30);
+        mat1TypeBox.setFont(defaultFont);
+        calculatePanel.add(mat1TypeBox);
+        mat1TypeBox.addActionListener(this);
 
-        mat2Box.setSelectedIndex(-1);
-        mat2Box.setBounds(170,60,112,30);
-        mat2Box.setFont(defaultFont);
-        mat2Box.setEnabled(false);
-        calculatePanel.add(mat2Box);
-        mat2Box.addActionListener(this);
+        mat2TypeBox.setSelectedIndex(-1);
+        mat2TypeBox.setBounds(170,60,112,30);
+        mat2TypeBox.setFont(defaultFont);
+        mat2TypeBox.setEnabled(false);
+        calculatePanel.add(mat2TypeBox);
+        mat2TypeBox.addActionListener(this);
+
+        mat1TierBox.setSelectedIndex(-1);
+        mat1TierBox.setBounds(292,10,60,30);
+        mat1TierBox.setFont(defaultFont);
+        calculatePanel.add(mat1TierBox);
+        mat1TierBox.addActionListener(this);
+
+        mat2TierBox.setSelectedIndex(-1);
+        mat2TierBox.setBounds(292,60,60,30);
+        mat2TierBox.setFont(defaultFont);
+        mat2TierBox.setEnabled(false);
+        calculatePanel.add(mat2TierBox);
 
         loadFileBox.setBounds(500,60,170,31);
         loadFileBox.setFont(defaultFont);
-
-        if (refreshSavedFiles()) {
-            loadFileBox.setSelectedIndex(0);
-        } else {
-            loadFileBox.setSelectedIndex(-1);
+        loadFileBox.setSelectedIndex(-1);
+        if (!refreshSavedFiles()) {
+            loadFileBox.setEnabled(false);
         }
         calculatePanel.add(loadFileBox);
         loadFileBox.addFocusListener(new FocusListener() {
@@ -185,23 +204,23 @@ public class Gui implements ActionListener {
             }
         });
 
-        artifactPriceField.setBounds(170,110,190,31);
+        artifactPriceField.setBounds(170,110,183,31);
         artifactPriceField.setFont(defaultFont);
-        artifactPriceField.setEnabled(false);
+        artifactPriceField.setEditable(false);
         calculatePanel.add(artifactPriceField);
 
-        totalCostField.setBounds(170,160,190,31);
+        totalCostField.setBounds(170,160,183,31);
         totalCostField.setFont(defaultFont);
         totalCostField.setEditable(false);
 //        totalPriceField.setText("999999999");
         calculatePanel.add(totalCostField);
 
-        mat1AmountField.setBounds(409,10,50,31);
+        mat1AmountField.setBounds(380,10,50,31);
         mat1AmountField.setFont(defaultFont);
         calculatePanel.add(mat1AmountField);
         mat1AmountField.addActionListener(this);
 
-        mat2AmountField.setBounds(409,60,50,31);
+        mat2AmountField.setBounds(380,60,50,31);
         mat2AmountField.setFont(defaultFont);
         mat2AmountField.setEnabled(false);
         calculatePanel.add(mat2AmountField);
@@ -231,43 +250,15 @@ public class Gui implements ActionListener {
 
         saveAsField.setBounds(500,10,170,31);
         saveAsField.setFont(defaultFont);
-        saveAsField.setText("Save as");
-        saveAsField.setHorizontalAlignment(JTextField.CENTER);
-        saveAsField.setForeground(new Color(173,173,173));
-        saveAsField.setSelectedTextColor(new Color(173,173,173));
         calculatePanel.add(saveAsField);
-        saveAsField.addFocusListener(new FocusListener() {
-            boolean wasEdited = false;
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (!wasEdited) {
-                    wasEdited = true;
-                    saveAsField.setText("");
-                    saveAsField.setHorizontalAlignment(JTextField.LEFT);
-                    saveAsField.setForeground(Color.BLACK);
-                    saveAsField.setSelectedTextColor(Color.BLACK);
-                }
-            }
 
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (saveAsField.getText().isEmpty()) {
-                    wasEdited = false;
-                    saveAsField.setText("Save as");
-                    saveAsField.setHorizontalAlignment(JTextField.CENTER);
-                    saveAsField.setForeground(new Color(173,173,173));
-                    saveAsField.setSelectedTextColor(new Color(173,173,173));
-                }
-            }
-        });
-
-        mat2RadioButton.setBounds(464,60,30,30);
+        mat2RadioButton.setBounds(435,60,30,30);
         mat2RadioButton.setFont(defaultFont);
         mat2RadioButton.setEnabled(false);
         calculatePanel.add(mat2RadioButton);
         mat2RadioButton.addActionListener(this);
 
-        artifactRadioButton.setBounds(364,110,30,30);
+        artifactRadioButton.setBounds(357,110,30,30);
         artifactRadioButton.setFont(defaultFont);
         calculatePanel.add(artifactRadioButton);
         artifactRadioButton.addActionListener(this);
@@ -293,39 +284,77 @@ public class Gui implements ActionListener {
         if (e.getSource() == calculateButton) {
             System.out.println("Calculate");
         } else if (e.getSource() == saveButton) {
-            System.out.println("Save");
+            switch (save()) {
+                case 0:
+                    // Succesfully saved
+                    loadFileBox.setEnabled(true);
+                    saveAsField.setText("");
+                    break;
+                case 1:
+                    JOptionPane.showMessageDialog(null,"ACsaves directory not found at " + System.getProperty("user.dir") + ", exiting.","Error",JOptionPane.ERROR_MESSAGE);
+                    System.exit(0);
+                    break;
+                case 2:
+                    JOptionPane.showMessageDialog(null,"Can't save with empty filename","Error",JOptionPane.ERROR_MESSAGE);
+                    break;
+                case 3:
+                    JOptionPane.showMessageDialog(null,"A file with this name already exists","Error",JOptionPane.ERROR_MESSAGE);
+                    break;
+                case 4:
+                    JOptionPane.showMessageDialog(null,"IOException, could not save","Error",JOptionPane.ERROR_MESSAGE);
+                    break;
+                case 5:
+                    JOptionPane.showMessageDialog(null,"No write acces to \" + System.getProperty(\"user.dir\") + \"/ACsaves","Error",JOptionPane.ERROR_MESSAGE);
+                    break;
+                case 6:
+                    JOptionPane.showMessageDialog(null,"Could not write to created file","Error",JOptionPane.ERROR_MESSAGE);
+                    break;
+                default:
+                    // TODO: Specify error messages
+                    JOptionPane.showMessageDialog(null,"Invalid value error","Error",JOptionPane.ERROR_MESSAGE);
+                    break;
+            }
         } else if (e.getSource() == loadButton) {
-            System.out.println("Load");
+            load();
         } else if (e.getSource() == mat2RadioButton) {
             if (mat2RadioButton.isSelected()) {
-                mat2Box.setEnabled(true);
+                mat2TypeBox.setEnabled(true);
+                mat2TierBox.setEnabled(true);
                 mat2AmountField.setEnabled(true);
             } else {
-                mat2Box.setSelectedIndex(-1);
-                mat2Box.setEnabled(false);
+                mat2TypeBox.setSelectedIndex(-1);
+                mat2TypeBox.setEnabled(false);
+                mat2TierBox.setSelectedIndex(-1);
+                mat2TierBox.setEnabled(false);
                 mat2AmountField.setText("");
                 mat2AmountField.setEnabled(false);
             }
         } else if (e.getSource() == artifactRadioButton) {
             if (artifactRadioButton.isSelected()) {
-                artifactPriceField.setEnabled(true);
+                artifactPriceField.setEditable(true);
             } else {
                 artifactPriceField.setText("");
-                artifactPriceField.setEnabled(false);
+                artifactPriceField.setEditable(false);
             }
-        } else if (e.getSource() == mat1Box) {
-            mat2RadioButton.setEnabled(true);
-            mat2Box.removeAllItems();
+        } else if (e.getSource() == mat1TypeBox) {
+            if (mat1TierBox.getSelectedIndex() != -1) {
+                mat2RadioButton.setEnabled(true);
+            }
+            mat2TypeBox.removeAllItems();
             for (int i = 0; i < materials.length; i++) {
-                if (i != mat1Box.getSelectedIndex()) {
-                    mat2Box.addItem(materials[i]);
+                if (i != mat1TypeBox.getSelectedIndex()) {
+                    mat2TypeBox.addItem(materials[i]);
                 }
             }
-            mat2Box.setSelectedIndex(-1);
+            mat2TypeBox.setSelectedIndex(-1);
+        } else if (e.getSource() == mat1TierBox) {
+            if (mat1TypeBox.getSelectedIndex() != -1) {
+                mat2RadioButton.setEnabled(true);
+            }
         }
     }
 
-    public boolean refreshSavedFiles() {
+    private boolean refreshSavedFiles() {
         // When box is clicked, search ACsaves dir for txt files and add the names to the box options
         loadFileBox.removeAllItems();
         File[] dirContents = new File(System.getProperty("user.dir") + "/ACsaves").listFiles();
@@ -350,9 +379,70 @@ public class Gui implements ActionListener {
                         loadFileBox.addItem(dirContentNames[j].substring(0,dirContentNames[j].length() - 4));
                     }
                 }
+                loadFileBox.setSelectedIndex(-1);
                 return true;
             }
         }
         return false;
+    }
+
+    private int save() {
+        System.out.println(artifactRadioButton.isSelected());
+        // Check everything before creating new file
+        if (!Files.exists(Path.of(System.getProperty("user.dir") + "/ACsaves"))) {
+            // Save directory doesn't exist
+            return 1;
+        } else if (saveAsField.getText().isEmpty()) {
+            // File name field is empty
+            return 2;
+        } else if (mat1TypeBox.getSelectedIndex() < 0) {
+            return 7;
+        } else if (mat1TierBox.getSelectedIndex() < 0) {
+            return 8;
+        } else if (!c.isNumber(mat1AmountField.getText())) {
+            return 9;
+        } else if (mat2RadioButton.isSelected()) {
+            if (mat2TypeBox.getSelectedIndex() < 0) {
+                return 10;
+            } else if (mat2TierBox.getSelectedIndex() < 0) {
+                return 11;
+            } else if (!c.isNumber(mat2AmountField.getText())) {
+                return 12;
+            }
+        } else if (artifactRadioButton.isSelected() && !c.isNumber(artifactPriceField.getText())) {
+            return 13;
+        }
+
+        File file = new File("ACsaves/" + saveAsField.getText() + ".txt");
+        try {
+            if (file.createNewFile()) {
+                // Succesfully created file, now check all filled values
+                try {
+                    FileWriter writer = new FileWriter("ACsaves/" + saveAsField.getText() + ".txt");
+                    // TODO: Write actual values
+                    writer.write("Test");
+                    // Succes writing
+                    writer.close();
+                    return 0;
+                } catch (IOException e) {
+                    // Cannot open created file, is a directory or cannot be opened for any other reason, should never happen
+                    return 6;
+                }
+            } else {
+                // File with this name already exists
+                return 3;
+            }
+        } catch (IOException e) {
+            // IOException
+            return 4;
+        } catch (SecurityException e) {
+            // No access to directory
+            return 5;
+        }
+    }
+
+    private int load() {
+        System.out.println("Load");
+        return 0;
     }
 }
